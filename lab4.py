@@ -141,8 +141,26 @@ def features_from_filter_bank(image, kernels):
         
     """
     # TASK 2.1 #
-
-
+    results = []
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2Lab)
+    
+    for i in range(0,3):
+        channel = cv2.extractChannel(image,i)
+        for j in range(0, 3):
+            filtered = cv2.filter2D(channel, -1, kernels['gaussian'][j])
+            results.append(filtered)
+            
+    for i in range(0,4):
+        channel = cv2.extractChannel(image,0)
+        filtered = cv2.filter2D(channel, -1, kernels['gaussian_derivative'][i])
+        results.append(filtered)
+        
+    for i in range(0,4):
+        channel = cv2.extractChannel(image,0)
+        filtered = cv2.filter2D(channel, -1, kernels['LoG'][i])
+        results.append(filtered)
+    
+    feats = np.stack(results, axis = 2)
     # TASK 2.1 #
     return feats
 
@@ -155,6 +173,7 @@ class Textonization:
     def __init__(self, kernels, n_clusters=200):
         self.n_clusters = n_clusters
         self.kernels = kernels
+        self.cluster_centers = None
 
     def training(self, training_imgs):
         """Takes all training images as input and stores the clustering centers for testing.
@@ -164,7 +183,15 @@ class Textonization:
             
         """
         # TASK 2.2 #
-
+        feature_list = []
+        for img in training_imgs:
+            feats = features_from_filter_bank(img, self.kernels)
+            feats = feats.reshape(-1, feats.shape[-1])
+            feature_list.append(feats)
+        data = np.concatenate(np.array(feature_list, dtype=object), axis = 0)
+        kmeans = MiniBatchKMeans(n_clusters=200, random_state=0)
+        kmeans.fit(data)
+        self.cluster_centers = kmeans.cluster_centers_
         # TASK 2.2 #
         
         pass
@@ -180,7 +207,11 @@ class Textonization:
         
         """
         # TASK 2.2 #
-
+        tree = KDTree(self.cluster_centers)
+        feats = features_from_filter_bank(img, self.kernels)
+        feats = feats.reshape(-1, feats.shape[-1])
+        textons = tree.query(feats, k=1, return_distance=False)
+        textons = np.reshape(textons,(img.shape[0], img.shape[1], 1))
         # TASK 2.2 #
         
         return textons
