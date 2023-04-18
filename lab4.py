@@ -28,7 +28,48 @@ def calcOpticalFlowHS(prevImg: np.array, nextImg: np.array, param_lambda: float,
         
     """
     # TASK 1.1 #
+    from skimage import filters 
 
+    # Precompute image and temporal gradients
+    ix = filters.sobel_h(prevImg)
+    iy = filters.sobel_v(prevImg)
+    it = nextImg - prevImg
+
+    # Initialize flow field
+    flow = np.zeros((prevImg.shape[0], prevImg.shape[1], 2), dtype=np.float32)
+    u = np.zeros_like(prevImg, dtype=np.float32)
+    v = np.zeros_like(prevImg, dtype=np.float32)
+
+    kernel = np.array([[0, 1/4, 0],
+                       [1/4, 0, 1/4],
+                       [0, 1/4, 0]], 
+                       dtype=np.float32)
+
+    count = 0
+    max_iter = 500
+    while count < max_iter:      
+        # Compute averages of neighbors
+        u_avg = cv2.filter2D(u, -1, kernel)
+        v_avg = cv2.filter2D(v, -1, kernel)
+
+        # Update flow
+        fraction = (ix * u_avg + iy * v_avg + it) / (1/param_lambda + ix**2 + iy**2) 
+        du = fraction * ix
+        dv = fraction * iy
+        u = u_avg - du
+        v = v_avg - dv
+
+        # Check convergence
+        if np.linalg.norm((du, dv)) < param_delta:
+            break
+
+        count += 1
+
+    if count == max_iter:
+        print('Maximum number of iterations reached')
+
+    flow[..., 0] = u
+    flow[..., 1] = v
     # TASK 1.1 #
 
     return flow
@@ -46,6 +87,11 @@ def combine_and_normalize_features(feat1: np.array, feat2: np.array, gamma: floa
         
     """
     # TASK 1.2 #
+    def normalise(matrix):
+        return matrix / np.sum(matrix)
+    # concatenate feat1 and feat2 along the last axis
+
+    feats = np.concatenate((normalise(feat1), gamma * normalise(feat2)), axis=-1)
 
     # TASK 1.2 #
     
