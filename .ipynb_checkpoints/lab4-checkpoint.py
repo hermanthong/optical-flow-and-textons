@@ -231,7 +231,16 @@ def histogram_per_pixel(textons, window_size):
     """
    
     # TASK 2.3 #
-
+    r = np.ceil(window_size / 2)
+    hists = np.zeros(shape = (textons.shape[0], textons.shape[1], 200))
+    for i in range(textons.shape[0]):
+        for j in range(textons.shape[1]):
+            il = int(i - r if i - r >= 0 else 0)
+            iu = int(i + r if i + r < textons.shape[0] else textons.shape[0] - 1)
+            jl = int(j - r if j - r >= 0 else 0)
+            ju = int(j + r if j + r < textons.shape[1] else textons.shape[1] - 1)
+            counts = np.bincount(np.ndarray.flatten(textons[il:iu+1, jl:ju + 1]))
+            hists[i][j][:counts.shape[0]] = counts
     # TASK 2.3 #
     
     return hists
